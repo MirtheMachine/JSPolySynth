@@ -55,7 +55,7 @@ function initializeAudio() {
 const button = document.createElement('button');
 
 // add the event listener pass through reference to self to delete once done
-button.addEventListener('mousedown', initializeAudio(), {once: true});
+button.addEventListener('mousedown', initializeAudio, {once: true});
 
 // add button to the body/intended parent node
 document.body.appendChild(button);
