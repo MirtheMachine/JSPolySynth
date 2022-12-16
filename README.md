@@ -12,8 +12,10 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * Click the first button to make sound!
 
 ### Tips:
-* The "click/hold" button acts as like a key on a piano! Try setting different envelope values for fun results.
+* The "click/hold" button acts like a key on a piano! Hold the button and try setting different envelope values for fun results.
 * The "Stop all sound" button acts as an instant panic - it deletes all currently running voices/oscillators.
+* The button's mousedown/mouseup actions are noteOn/noteOff. You can click down and drag off the button to hold the note (don't release click until cursor off of button)
+* If a note gets stuck, you can do the inverse of the above, hold down click -> move cursor onto button -> release click, to untrigger a stuck voice. Try doing some voice math and add/subtract voices per-note :)
 -----------------------
 # Use in Your Page!
 
