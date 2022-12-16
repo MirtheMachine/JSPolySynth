@@ -1,23 +1,25 @@
 /**
- * synthesizer.js
- * Written by Mirthe_
+ * # synthesizer.js
+ * ### Written by Mirthe_
  *
  * Synthesizer object with noteOn(note) and noteOff(note) functions
- * Parameters for oscillator type, voices, detune, enveloping, and the filter
- * are applied with each noteOn() to a new set of created oscillators.
- * Supports (hopefully) unlimited polyphony!
- * -----------------------------------
- * !!!!!!!!!!---IMPORTANT---!!!!!!!!!!!
+ * * Contains parameters/variables for oscillator type, voices, detune, enveloping, and filtering
+ * * Current oscillator and envelope parameters are applied with each noteOn() to a new soundOscillator.
+ * * Supports (hopefully) unlimited polyphony!
+ *
+ * ### !!!!!!!!!! IMPORTANT INFO BELOW !!!!!!!!!!!
  * MUST HAVE AN `audioContext` OBJECT IN SCRIPT USING THIS OBJECT.
- * `audioContext` OBJECT MUST BE INITIALIZED TO `window.audioContext` IN AN EVENT LISTENER
- * (event listener window.audioContext creation required by Web Audio API specifications)
+ * * `audioContext` must be initialized to `window.audioContext` by an event listener.
+ *
+ * Above required by Web Audio API specification
  */
 
 /**
- * Synthesizer object which contains a member list of
- * SoundOscillators, Notes, and Effects (AudioNodes)
- * <br>Contains noteOn and noteOff functions create a new SoundOscillator
- * and applies envelopes to its gain and filter nodes.
+ * Synthesizer object containing
+ * SoundOscillators, Notes, Effects, and Parameters
+ * * Trigger a voice to play via noteOn(midiNote)
+ * * Trigger a voice to release via noteOff(midiNote)
+ * * Get human-readable note statistics via logNotesSummary()
  * @param {"sine" | "square" | "triangle" | "sawtooth" | "custom" } oscType
  * @param {"allpass" | "bandpass" | "highpass" | "highshelf" | "lowpass" | "lowshelf" | "notch" | "peaking"} filterType
  * @constructor
@@ -74,7 +76,7 @@ class Synthesizer {
         this._filterFrequency = 24000.0;
         this._filterBandwidth = 1;
 
-        // ------- Envl. Params ------- //
+        // ------ Envelope Params ------ //
 
         this._geDepth = 1;
         this._geA = 96;
@@ -91,14 +93,14 @@ class Synthesizer {
 
     }
 
+    // --- Note play and panic functions --- //
+
     /**
-     * noteOn to create a new SoundOscillator to play note and:
-     * <br>* checks if note has been initialized in noteList table and pushes created soundOscillator
-     * <br>* initializes note in table with newly pushed sound oscillator if not.
-     * <br>* Convert note to a note frequency at standard tuning (440hz)
+     * Creates a new soundOscillator at given midi note's calculated frequency (standard tuning)
+     * <br>* Converts midi note to a musical frequency at standard tuning (440hz)
      * <br>* Applies current synth master parameters on newly created soundOscillator
-     * <br>* Envelopes the gainNode gain value according to this.ge(ADSR)
-     * @param note
+     * <br>* Envelopes the soundOscillator.gainNode.gain value according to this.ge{A/D/S}
+     * @param {number} note Midi note value
      */
     noteOn(note) {
         function noteFreq(note) {
@@ -138,15 +140,13 @@ class Synthesizer {
         newOSCParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((this.geD + this.geA) / 1000));
     }
 
-
     /**
-     * noteOff triggers release envelope:
-     * <br> * Retrieves oscillator from noteOnList via midi note, uses last created soundOscillator for note
+     * Triggers a release envelope for least recent soundOscillator on given note
      * <br> * Changes gain value to 0.001% over this.geR milliseconds
      * <br> * Exchanges soundOscillator from noteOnList to noteOffList
-     * <br> * Sets a timeout to delete the enveloped soundOscillator from noteOffList after the release
+     * <br> * Sets a timeout to delete the enveloped soundOscillator from noteOffList after release period
      * <br> * NOTE: Thank you to Jake (Ozzy64k) for never leaving my brain until I got this right
-     * @param {number} note - Note data: initial key/envelopes
+     * @param {number} note Midi note value
      */
     noteOff(note) {
         if (note in this.noteOnList && this.noteOnList[note].length > 0) {
@@ -223,6 +223,24 @@ class Synthesizer {
         this.timeOutList.splice(0);
     }
 
+    // --------------------------- //
+
+    // --- Statistic Functions --- //
+
+    /**
+     * Returns both active and releasing soundOscillators of given midi note
+     * <br>Return is an array:
+     * <br>[0]: {note: midiNote, oscGroup: active soundOscillators[]}
+     * <br>[1]: {note: midiNote oscGroup: releasing soundOscillators[]}
+     * @param note
+     */
+    getNoteOscillators(note){
+        let r = [];
+        if(this.noteOnList[note] && this.noteOnList[note].length > 0) r[0] = {note: note, oscGroup: this.noteOnList[note]};
+        if(this.noteOffList[note] && this.noteOffList[note].length > 0) r[1] = {note: note, oscGroup: this.noteOffList[note]};
+        return r;
+    }
+
     /**
      * Returns number of voices on/releasing on a midi note
      * @param {number} note
@@ -235,7 +253,7 @@ class Synthesizer {
     }
 
     /**
-     * Takes a note index parses voice info (# of on/releasing voices)
+     * Takes a note index and parses voice info (# of on/releasing voices)
      * <br>Returns a user-readable string
      * @param {number} note
      */
@@ -249,7 +267,7 @@ class Synthesizer {
     }
 
     /**
-     * Returns a user-readable string of active note info
+     * Returns a user-readable string of active note voice info
      */
     logNotesSummary(){
         let r = ("--- Active Notes ---\n");
@@ -264,27 +282,38 @@ class Synthesizer {
         return r;
     }
 
-    getOnVoiceListInfo(){
+    /**
+     * Returns data for notes currently in noteOn state
+     * @return {{index: {number}, voices: {number}}[]}
+     */
+    getOnNoteInfo(){
         let r = [];
         for (let i in this.noteOnList){
             if(this.noteOnList[i] && this.noteOnList[i].length > 0){
-                r.push({index: i, voices: this.noteOnList[i].length});
+                r.push(this.getNoteInfo(i));
             }
         }
         return r;
     }
 
-    getOffVoiceListInfo(){
+    /**
+     * Returns data for notes currently in release state
+     * @return {*[{index: {number}, voices: {number}]}
+     */
+    getOffNoteInfo(){
         let r = [];
         for (let i in this.noteOffList){
             if(this.noteOffList[i] && this.noteOffList[i].length > 0){
-                r.push({index: i, voices: this.noteOffList[i].length});
+                r.push(this.getNoteInfo(i));
             }
         }
         return r;
     }
 
-    //effect insertion currently not working
+    // -------------------------------- //
+
+    // -- Effect Insertion Functions -- //
+    //effect insertion currently not working afaik
 
     /**
      * Adds an insert effect to the Synthesizer and manages its connections
@@ -308,6 +337,10 @@ class Synthesizer {
         }
     }
 
+    /**
+     * Reconnects effect at index to parent/child in effectList
+     * @param i
+     */
     reconnectEffect(i) {
         //if effect is the first effect, connects it to masterGainNode
         if (i === 0) {
@@ -325,7 +358,9 @@ class Synthesizer {
         }
     }
 
-    //getters and setters for control values
+    // -------------------------- //
+
+    // --- Getters and Setters -- //
 
     get oscType() {
         return this._oscType;

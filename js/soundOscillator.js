@@ -1,19 +1,20 @@
 /**
  * soundOscillator.js
- * <br>Written by Mirthe_
+ * Written by Mirthe_
  *
- * <br>SoundOscillator constructor and createOscillator function
- * <br>Requires audioContext<window.audioContext> object in global scope
+ * SoundOscillator constructor and createOscillator function
+ *
+ * Requires audioContext<window.audioContext> object in global scope
  */
 class SoundOscillator {
     /**
-     * Represents an oscillator with gainNode and filterNode
+     * Object with an oscillator/audioBuffer array + gainNode and filterNode
      * @param {number} voices
      * @param {number} detune
      * @param {"synth"|"sampler"} type
      * @constructor
      */
-    constructor(voices = 1, detune = 0, type = "synth") { //to-do new params: oType, oVol, frequency, effects
+    constructor(voices = 1, detune = 0, type = "synth") {
 
         this.voices = voices;
         this.detune = detune;
@@ -55,31 +56,43 @@ class SoundOscillator {
         }
         else{
             //TO-DO: create audioBuffer nodes based on file
+            // duplicated code for testing
+            let evens = 1;
+            for(let i = 0; i < this.voices; i ++){
+                let osc = audioContext.createOscillator();
+                if(i>0){
+                    if(i%2===1)osc.detune.value = this.detune * evens;
+                    else{
+                        osc.detune.value = this.detune * -evens;
+                        evens++;
+                    }
+                }
+                oscillators.push(osc);
+            }
         }
 
         this.oscillators = oscillators;
     }
 
+    //will likely move to synthesizer and take retrieved audioBuffers as params
     async getFile(audioContext, filepath) {
         const response = await fetch(filepath);
         const arrayBuffer = await response.arrayBuffer();
         return await audioContext.decodeAudioData(arrayBuffer);
     }
-
-
 }
 
 /**
- * Creates and initializes a new oscillator with proper context connections
- * @param {number} voices
- * @param {number} detune
- * @param {"sine" | "square" | "triangle" | "sawtooth" | "custom" } oType - oscillator type
+ * Creates and initializes a new soundOscillator with params and proper contextual connections
+ * @param {number} voices number of oscillator nodes to create as parallel voices
+ * @param {number} detune voice detuning base value in cents
+ * @param {"sine" | "square" | "triangle" | "sawtooth" | "custom" } oType oscillator type
  * @param {number} oVol max gain for envelope
- * @param {number} frequency frequency for oscillator to play at [float:hz]
+ * @param {number} frequency frequency for oscillator to play at in hz
  * @param {"allpass" | "bandpass" | "highpass" | "highshelf" | "lowpass" | "lowshelf" | "notch" | "peaking"} fType  biquad filter type
- * @param {number} fFrequency base filter frequency [float:hz]
- * @param {number} fQValue bandwidth in octaves to be converted to Q value for filter
- * @returns {SoundOscillator} a new SoundOscillator created with given params and connected to the master audio context
+ * @param {number} fFrequency base filter frequency in hz
+ * @param {number} fQValue Q value to apply to filter
+ * @returns {SoundOscillator} A new SoundOscillator object with given params
  */
 function createSOsc(voices = 1, detune = 0,
     oType = "sine", oVol= 1, frequency,

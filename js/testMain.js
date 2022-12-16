@@ -86,7 +86,7 @@ function spawnBox(boxID) {
     //add select element to divContainer
     divContainer.appendChild(document.createTextNode(box.question));
 
-    //add option elements for each box answer object in answers[]
+    //create option elements for each answer object in box
     box.answers.forEach(function (v) {
       const optionElement = document.createElement("option");
       optionElement.appendChild(document.createTextNode(v.text));
@@ -96,7 +96,7 @@ function spawnBox(boxID) {
       selectElement.appendChild(optionElement);
     });
 
-    //submit answer button
+    //create submit answer button
     const questionButton = document.createElement("input");
     questionButton.type = "button";
     questionButton.value = "submit answer";
@@ -126,6 +126,7 @@ function spawnBox(boxID) {
     divContainer.appendChild(questionButton);
     document.getElementsByTagName('body')[0].appendChild(divContainer);
   } else {
+    //spawn the start synth button once looped through 3 times
     spawnStartAudioButton();
   }
 }
