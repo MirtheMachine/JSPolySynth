@@ -14,12 +14,12 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * Click/hold the left button to make sound!
 
 ### Tips:
-* The "click/hold" button acts like a key on a piano! Hold the button and try setting different envelope values for fun results.
+* The "Click/hold to play a note!" button acts like a key on a piano. Hold the button and try setting different envelope values for fun results!
 * The "Stop all sound" button acts as an instant panic - it deletes all currently running voices/oscillators.
 * The button's mousedown/mouseup actions are noteOn/noteOff meaning..
 * To hold a voice on a note: Click and hold over the button -> keep click held -> move mouse off of button
 * To un-hold a voice on a note: Hold down click -> move cursor onto button -> release click
-* Try doing some addition/subtraction of voices on a note doing the above to test the synth's dynamic polyphony
+* Try doing some addition/subtraction of voices on a note doing the above to test the dynamic polyphony
 * A single note can have multiple types of oscillators playing! Set a note to be held then change oscillator type and play some new ones! See what happens :)
 
 -----------------------
@@ -36,10 +36,10 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 
 ### Planned:
 * Filter enveloping
-* Unison detune/frequency modulation
+* Unison detune /frequency modulation
 * Master FX / FX Connection Matrix System
-* MIDI input/synth parameter interaction
-* Better UI/UI Generator
+* MIDI input / synth parameter interaction
+* Better UI / UI Generator
 * Sampler voices
 * Frequency Modulation / Multi-Osc
 
