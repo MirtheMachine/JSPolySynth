@@ -27,8 +27,8 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 
 ### Add the following to your html header with corresponding files in directory:
 ```html
-<script src="js/soundOscillator.js"/>
-<script src="js/synthesizer.js"/>
+<script src="js/soundOscillator.js"></script>
+<script src="js/synthesizer.js"></script>
 ```
 
 ### Have the following variable in your main script in global scope
