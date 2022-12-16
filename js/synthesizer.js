@@ -80,8 +80,8 @@ class Synthesizer {
         this._geA = 96;
         this._geD = 224;
         this._geS = 0.25;
-
         this._geR = 1080;
+
         this._envelopeFilter = false;
         this._feDepth = 0;
         this._feA = 1;
@@ -105,32 +105,32 @@ class Synthesizer {
             return 440 * Math.pow(2, (note - 69) / 12);
         }
 
-        let s;
+        let createdOsc;
         if (this.noteOnList[note]) {
             //pushes a new soundOscillator (can have a soundOscillator releasing on the same note)
             let si = this.noteOnList[note].push(createSOsc(this._voices, this._detune, this._oscType, this._maxVolume, noteFreq(note),
                 this._filterType, this._filterFrequency, this._filterBandwidth));
             //sets s to newly created oscillator on note
-            s = this.noteOnList[note][si - 1];
+            createdOsc = this.noteOnList[note][si - 1];
         } else {
             //sets noteList[note] to a standard soundOscillator array with a singular soundOscillator
             this.noteOnList[note] = [createSOsc(this._voices, this._detune,
                 this._oscType, this._maxVolume, noteFreq(note),
                 this._filterType, this._filterFrequency, this._filterBandwidth)];
             //sets s to index 0 (the created SoundOscillator) on created array in note
-            s = this.noteOnList[note][0];
+            createdOsc = this.noteOnList[note][0];
         }
         //Log voice creation
         //console.log("Voice created on note: " + note);
         //this.logNoteInfo(note);
 
         //initialize new soundOscillator gain volume for enveloping
-        const newOSCParam = s.gainNode.gain;
+        const newOSCParam = createdOsc.gainNode.gain;
         newOSCParam.cancelScheduledValues(0);
         newOSCParam.exponentialRampToValueAtTime(0.001, 0);
 
         //assign new soundOscillator a constant reference
-        const newOSC = s;
+        const newOSC = createdOsc;
 
         //connect 'master' soundOscillator node to synthesizer's destination
         newOSC.filterNode.connect(this._destination);
@@ -141,11 +141,11 @@ class Synthesizer {
 
     /**
      * noteOff triggers release envelope:
-     * <br> * Retrieves oscillator from noteList via midi note, uses last created soundOscillator for note
-     * <br> * Envelopes the gain value by its release portion down to .01%
-     * <br> * Trades soundOscillator from noteOnList to noteOffList
+     * <br> * Retrieves oscillator from noteOnList via midi note, uses last created soundOscillator for note
+     * <br> * Changes gain value to 0.001% over this.geR milliseconds
+     * <br> * Exchanges soundOscillator from noteOnList to noteOffList
      * <br> * Sets a timeout to delete the enveloped soundOscillator from noteOffList after the release
-     * <br> * NOTE: Thank you to Jake for never leaving my brain until I got this right
+     * <br> * NOTE: Thank you to Jake (Ozzy64k) for never leaving my brain until I got this right
      * @param {number} note - Note data: initial key/envelopes
      */
     noteOff(note) {
@@ -224,47 +224,52 @@ class Synthesizer {
     }
 
     /**
-     * Takes a note index and returns number of voices on and voices releasing
+     * Returns number of voices on/releasing on a midi note
      * @param {number} note
-     * @return {{voicesHeld: {number}, voicesReleasing: {number}}}
+     * @return {{voicesOn: {number}, voicesReleasing: {number}}}
      */
     getNoteInfo(note){
-        let onVoices = (this.noteOnList[note] && this.noteOnList[note].length>0) ? this.noteOnList[note].length: 0;
-        let offVoices = (this.noteOffList[note] && this.noteOffList[note].length>0) ? this.noteOffList[note].length: 0;
-        return {voicesHeld: onVoices, voicesReleasing: offVoices};
+        let onVoices = (this.noteOnList[note] && this.noteOnList[note].length > 0) ? this.noteOnList[note].length: 0;
+        let offVoices = (this.noteOffList[note] && this.noteOffList[note].length > 0) ? this.noteOffList[note].length: 0;
+        return {voicesOn: onVoices, voicesReleasing: offVoices};
     }
 
     /**
-     * Takes a note index and logs number of voices on/releasing to console
-     * @param note
+     * Takes a note index parses voice info (# of on/releasing voices)
+     * <br>Returns a user-readable string
+     * @param {number} note
      */
     logNoteInfo(note){
         let info = this.getNoteInfo(note);
-        console.log("--------");
-        console.log('# of voices on: ' + info.voicesHeld);
-        console.log('# of voices releasing: ' + info.voicesReleasing);
-        console.log("--------");
+        let r = ("--------");
+        r += ('\n# of voices on: ' + info.voicesOn);
+        r += ('\n# of voices releasing: ' + info.voicesReleasing);
+        r += ("\n--------");
+        return r;
     }
 
     /**
-     * Logs note summary to console
+     * Returns a user-readable string of active note info
      */
     logNotesSummary(){
-        console.log("--- Active Notes ---");
+        let r = ("--- Active Notes ---\n");
         for (let i = 0, l = 127; i <= l; i++){
             if( (this.noteOnList[i] && this.noteOnList[i].length > 0) ||
                 (this.noteOffList[i] && this.noteOffList[i].length > 0)) {
-                console.log("Note: " + i);
-                this.logNoteInfo(i);
+                r += ("\nNote: " + i);
+                r += "\n" + this.logNoteInfo(i);
             }
         }
-        console.log("--- End Summary ---");
+        r += ("\n\n--- End Summary ---");
+        return r;
     }
 
     getOnVoiceListInfo(){
         let r = [];
         for (let i in this.noteOnList){
-            if(this.noteOnList[i] && this.noteOnList[i].length > 0) r.push({index: i, voices: this.noteOnList[i].length});
+            if(this.noteOnList[i] && this.noteOnList[i].length > 0){
+                r.push({index: i, voices: this.noteOnList[i].length});
+            }
         }
         return r;
     }
@@ -272,7 +277,9 @@ class Synthesizer {
     getOffVoiceListInfo(){
         let r = [];
         for (let i in this.noteOffList){
-            if(this.noteOffList[i] && this.noteOffList[i].length > 0) r.push({index: i, voices: this.noteOffList[i].length});
+            if(this.noteOffList[i] && this.noteOffList[i].length > 0){
+                r.push({index: i, voices: this.noteOffList[i].length});
+            }
         }
         return r;
     }
