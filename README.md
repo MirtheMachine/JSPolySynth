@@ -5,6 +5,7 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 # General Usage
 
 * Clone/download repository files (use the green 'code' button at the top and download/extract the zip!)
+* Clone/download repository files (use the green 'code' button at the top and download/extract the zip!)
 * Double click index.html or open in Firefox/Chrome/Edge/Safari (most browsers supported)
 * Click the first button to initialize the audio and start generating your synthesizer
 * Navigate through the options to initialize a synthesizer through a tree of preset values
@@ -16,6 +17,8 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 ### Cool Tips:
 
 * The "click/hold" button acts like a key on a piano! Hold the button and try setting different envelope values for fun results.
+### Tips:
+* The "click/hold" button acts like a key on a piano! Hold the button and try setting different envelope values for fun results.
 * The "Stop all sound" button acts as an instant panic - it deletes all currently running voices/oscillators.
 * The button's mousedown/mouseup actions are noteOn/noteOff meaning..
 * To hold a voice on a note: Click and hold over the button -> keep click held -> move mouse off of button
@@ -23,6 +26,8 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * Try doing some addition/subtraction of voices on a note doing the above to test the synth's dynamic polyphony
 * A single note can have multiple types of oscillators playing! Set a note to be held then change oscillator type and play some new ones! See what happens :)
 
+* The button's mousedown/mouseup actions are noteOn/noteOff. You can click down and drag off the button to hold the note (don't release click until cursor off of button)
+* If a note gets stuck, you can do the inverse of the above, hold down click -> move cursor onto button -> release click, to untrigger a stuck voice. Try doing some voice math and add/subtract voices per-note :)
 -----------------------
 
 # Use in Your Page!
