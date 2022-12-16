@@ -21,6 +21,28 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * To un-hold a voice on a note: Hold down click -> move cursor onto button -> release click
 * Try doing some addition/subtraction of voices on a note doing the above to test the synth's dynamic polyphony
 * A single note can have multiple types of oscillators playing! Set a note to be held then change oscillator type and play some new ones! See what happens :)
+
+-----------------------
+
+# Features
+
+### Current:
+* 4 Oscillator types: sine, square, sawtooth, triangle
+* Full per-note polyphony! (can envelope independent/multiple voices on a single note at once accurately)
+* Multi-Voicing/Detune
+* Gain Enveloping
+* Filter support
+* Basic note state statistics
+
+### Planned:
+* Filter enveloping
+* Unison detune/frequency modulation
+* Master FX / FX Connection Matrix System
+* MIDI input/synth parameter interaction
+* Better UI/UI Generator
+* Sampler voices
+* Frequency Modulation / Multi-Osc
+
 -----------------------
 
 # Use in Your Page!
