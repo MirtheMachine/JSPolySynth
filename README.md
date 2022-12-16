@@ -3,7 +3,7 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 
 -----------------------
 # General Usage
-* Clone/download repository files (use the green 'code' button at the top and download as a zip!)
+* Clone/download repository files (use the green 'code' button at the top and download/extract the zip!)
 * Double click index.html or open in Firefox/Chrome/Edge/Safari (most browsers supported)
 * Click the first button to initialize the audio and start generating your synthesizer
 * Navigate through the options to initialize a synthesizer through a tree of preset values
