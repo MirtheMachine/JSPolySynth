@@ -38,7 +38,7 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * Filter enveloping
 * Unison detune/frequency modulation
 * Master FX / FX Connection Matrix System
-* MIDI input / synth parameter interaction
+* MIDI input/synth parameter interaction
 * Better UI/UI Generator
 * Sampler voices
 * Frequency Modulation / Multi-Osc
