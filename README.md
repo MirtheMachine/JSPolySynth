@@ -4,7 +4,7 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 -----------------------
 # General Usage
 
-* Clone/download repository files (use the green 'code' button at the top and download/extract the zip!)
+* Clone or download the repository files (use the green 'code' button at the top and download/extract the zip!)
 
 * Double click index.html or open in Firefox/Chrome/Edge/Safari (most browsers supported)
 * Click the first button to initialize the audio and start generating your synthesizer
@@ -31,16 +31,16 @@ A WIP demonstration of creating a polyphonic synthesizer in Javascript via the W
 * Full per-note polyphony! (can envelope independent/multiple voices on a single note at once accurately)
 * Multi-Voicing/Detune
 * Gain Enveloping
-* Filter support
-* Basic note state statistics
+* Filter Support
+* Basic Note State Statistics
 
 ### Planned:
-* Filter enveloping
-* Unison detune /frequency modulation
+* Filter Enveloping
+* Unison Detune / Frequency Modulation
 * Master FX / FX Connection Matrix System
-* MIDI input / synth parameter interaction
+* MIDI input / MIDI parameter mapping
 * Better UI / UI Generator
-* Sampler voices
+* Sampler Voices
 * Frequency Modulation / Multi-Osc
 
 -----------------------
