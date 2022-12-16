@@ -141,10 +141,11 @@ class Synthesizer {
 
     /**
      * noteOff triggers release envelope:
-     * <br> * retrieves oscillator from noteList via midi note, uses last created soundOscillator for note
+     * <br> * Retrieves oscillator from noteList via midi note, uses last created soundOscillator for note
      * <br> * Envelopes the gain value by its release portion down to .01%
-     * <br> * Sets a timeout to delete the enveloped soundOscillator from its note's array after the release
-     * <br> * NOTE: added 10ms to timeout as the function is not time-accurate and doing so also mitigates bit-flips when nodes shifted out of array
+     * <br> * Trades soundOscillator from noteOnList to noteOffList
+     * <br> * Sets a timeout to delete the enveloped soundOscillator from noteOffList after the release
+     * <br> * NOTE: Thank you to Jake for never leaving my brain until I got this right
      * @param {number} note - Note data: initial key/envelopes
      */
     noteOff(note) {
