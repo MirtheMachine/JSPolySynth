@@ -1,5 +1,5 @@
 # Javascript Poly Synth
-A WIP demonstration of creating a polyphonic synthesizer in Javascript via the Web Audio API
+A WIP learning demonstration of creating a polyphonic synthesizer in Javascript via the Web Audio API
 
 -----------------------
 # General Usage
