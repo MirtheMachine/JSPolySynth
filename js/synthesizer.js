@@ -295,7 +295,7 @@ class Synthesizer {
 
                 let oldProgressValue = soundOscillator.envelopeProgress.release.value;
                 soundOscillator.envelopeProgress.release.cancelScheduledValues(0);
-                soundOscillator.envelopeProgress.release.exponentialRampToValueAtTime(oldProgressValue, 0.001);
+                soundOscillator.envelopeProgress.release.linearRampToValueAtTime(oldProgressValue, 0.001);
                 soundOscillator.envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + ((newRelease*p)/1000));
             });
         });
