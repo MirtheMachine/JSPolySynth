@@ -507,20 +507,23 @@ class Synthesizer {
         let modNotes = [];
         for (let note in this.noteOffList){
             if (this.noteOffList[note] && this.noteOffList[note].length > 0){
-                console.log(note);
+                //log notes modified by new release
+                //console.log(note);
                 modNotes.push(this.noteOffList[note]);
             }
         }
         modNotes.forEach((noteGroup) => {
-            console.log(noteGroup);
             noteGroup.forEach((soundOscillator) => {
                 //STINKY REPEATED CODE (almost).
                 //New release time is scaled by note release progress
                 //Note release progress is a value linearly changing from 1 to 0
+                let p = soundOscillator.envelopeProgress.release.value;
+                //log progress value
+                //console.log(p);
 
                 //cancel and hold old value - have to use because firefox doesn't support cancelAndHoldAtTime
                 let oldValue = soundOscillator.gainNode.gain.value;
-                let p = soundOscillator.envelopeProgress.release.value;
+
                 soundOscillator.gainNode.gain.cancelScheduledValues(0);
                 //set oscParam value from changing to on hold
                 soundOscillator.gainNode.gain.exponentialRampToValueAtTime(oldValue, audioContext.currentTime + 0.001); //causes a small 'pop' due to immediate change
@@ -544,7 +547,6 @@ class Synthesizer {
                 }, newRelease*p, this.noteOffList, noteGroup, this.timeOutList));
 
                 let oldProgressValue = soundOscillator.envelopeProgress.release.value;
-                console.log(oldProgressValue);
                 soundOscillator.envelopeProgress.release.cancelScheduledValues(0);
                 soundOscillator.envelopeProgress.release.exponentialRampToValueAtTime(oldProgressValue, 0.001);
                 soundOscillator.envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + ((newRelease*p)/1000));
