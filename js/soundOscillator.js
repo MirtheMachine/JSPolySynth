@@ -32,6 +32,12 @@ class SoundOscillator {
 
         /** @type {number} */
         this.maxOscVol = 1; //want to be able to decrease oscillator volume based on if there's more than one
+
+        const aP = new ConstantSourceNode(audioContext);
+        const dP = new ConstantSourceNode(audioContext);
+        const rP = new ConstantSourceNode(audioContext);
+
+        this.envelopeProgress = {attack: aP.offset, decay: dP.offset, release: rP.offset};
     }
 
     /**

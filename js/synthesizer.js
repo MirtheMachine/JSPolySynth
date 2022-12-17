@@ -134,10 +134,21 @@ class Synthesizer {
         //assign new soundOscillator a constant reference
         const newOSC = createdOsc;
 
+        //get values of CSC envelope progress nodes
+        const attackProgress = newOSC.envelopeProgress.attack;
+        const decayProgress = newOSC.envelopeProgress.decay;
+
         //connect 'master' soundOscillator node to synthesizer's destination
         newOSC.filterNode.connect(this._destination);
+
+        //schedule attack/decay
         newOSCParam.exponentialRampToValueAtTime(.993, audioContext.currentTime + (this.geA / 1000));
-        newOSCParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((this.geD + this.geA) / 1000));
+        newOSCParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((this.geA+this.geD) / 1000));
+
+        //schedule attack/decay progress timers
+        attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
+        decayProgress.linearRampToValueAtTime(1, audioContext.currentTime + (this.geA/1000));
+        decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geD/1000));
     }
 
     /**
@@ -166,6 +177,12 @@ class Synthesizer {
             //exchange oscillator from noteOnList to noteOffList
             if(note in this.noteOffList)this.noteOffList[note].push(this.noteOnList[note].pop());
             else this.noteOffList[note] = [this.noteOnList[note].pop()];
+
+            console.log(this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.value);
+
+            //schedule release progress timer
+            this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.setValueAtTime(1, 0);
+            this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + (this.geR / 1000));
 
             //create timeOut with delay of this.geR and push id to timeOutList
             //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
@@ -305,6 +322,20 @@ class Synthesizer {
         for (let i in this.noteOffList){
             if(this.noteOffList[i] && this.noteOffList[i].length > 0){
                 r.push(this.getNoteInfo(i));
+            }
+        }
+        return r;
+    }
+
+    /**
+     * Returns indexes for notes currently in release state
+     * @return {*[{index: {number}, voices: {number}]}
+     */
+    getOffNoteIndexes(){
+        let r = [];
+        for (let i in this.noteOffList){
+            if(this.noteOffList[i] && this.noteOffList[i].length > 0){
+                r.push(i);
             }
         }
         return r;
@@ -470,8 +501,55 @@ class Synthesizer {
         return this._geR;
     }
 
-    set geR(value) {
-        this._geR = value;
+    set geR(newRelease) {
+        this._geR = newRelease;
+        this.timeOutList.splice(0);
+        let modNotes = [];
+        for (let note in this.noteOffList){
+            if (this.noteOffList[note] && this.noteOffList[note].length > 0){
+                console.log(note);
+                modNotes.push(this.noteOffList[note]);
+            }
+        }
+        modNotes.forEach((noteGroup) => {
+            console.log(noteGroup);
+            noteGroup.forEach((soundOscillator) => {
+                //STINKY REPEATED CODE (almost).
+                //New release time is scaled by note release progress
+                //Note release progress is a value linearly changing from 1 to 0
+
+                //cancel and hold old value - have to use because firefox doesn't support cancelAndHoldAtTime
+                let oldValue = soundOscillator.gainNode.gain.value;
+                let p = soundOscillator.envelopeProgress.release.value;
+                soundOscillator.gainNode.gain.cancelScheduledValues(0);
+                //set oscParam value from changing to on hold
+                soundOscillator.gainNode.gain.exponentialRampToValueAtTime(oldValue, audioContext.currentTime + 0.001); //causes a small 'pop' due to immediate change
+
+                soundOscillator.gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
+                soundOscillator.gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
+
+                //create timeOut with delay of this.geR and push id to timeOutList
+                //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
+                this.timeOutList.push(setTimeout( (offList, note, timeOutList) => {
+                    if(offList[note]){
+                        offList[note][0].oscillators.forEach((osc) => {
+                            osc.stop(0);
+                        });
+                        offList[note].splice(0, 1);
+                        //memory management below not required
+                        //if(offList[note].length === 0) offList.splice(note, 1);
+                        //if(noteList[note] && noteList[note].length === 0) noteList.splice(note, 1);
+                        timeOutList.splice(0, 1);
+                    }
+                }, newRelease*p, this.noteOffList, noteGroup, this.timeOutList));
+
+                let oldProgressValue = soundOscillator.envelopeProgress.release.value;
+                console.log(oldProgressValue);
+                soundOscillator.envelopeProgress.release.cancelScheduledValues(0);
+                soundOscillator.envelopeProgress.release.exponentialRampToValueAtTime(oldProgressValue, 0.001);
+                soundOscillator.envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + ((newRelease*p)/1000));
+            });
+        });
     }
 
     get geS() {
