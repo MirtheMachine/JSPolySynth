@@ -141,7 +141,6 @@ class Synthesizer {
 
         //schedule attack/decay
         this.attack(newOSCParam, this.geA);
-        this.decay(newOSCParam, this.geD);
 
         //schedule attack/decay progress timers
         attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
@@ -153,12 +152,13 @@ class Synthesizer {
         this.cancelAndHold(oscParam);
         //schedule attack ramp
         oscParam.exponentialRampToValueAtTime(.993, audioContext.currentTime + (attack / 1000));
+        this.decay(oscParam, attack, this.geD);
         //oscParam.cancelScheduledValues(audioContext.currentTime + attack/1000);
     }
 
-    decay(oscParam, decay) {
+    decay(oscParam, attack, decay) {
         //this.cancelAndHold(oscParam);
-        oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay + this.geA) / 1000));
+        oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay + attack) / 1000));
     }
 
     /**
@@ -279,6 +279,22 @@ class Synthesizer {
                 let progress = this.noteOffList[note][i].envelopeProgress.release.value;
                 this.release(note, newRelease * progress);
             }
+        });
+    }
+
+
+    get geA() {
+        return this._geA;
+    }
+
+    set geA(value) {
+        this._geA = value;
+        let modNotes = this.getOnNoteIndexes();
+        modNotes.forEach((note) => {
+            this.noteOnList[note].forEach((noteGroup) => {
+                let progress = noteGroup.envelopeProgress.attack.value;
+                this.attack(noteGroup.gainNode.gain, value * progress);
+            });
         });
     }
 
@@ -562,14 +578,6 @@ class Synthesizer {
 
     set geD(value) {
         this._geD = value;
-    }
-
-    get geA() {
-        return this._geA;
-    }
-
-    set geA(value) {
-        this._geA = value;
     }
 
     get geDepth() {
