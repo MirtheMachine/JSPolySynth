@@ -107,20 +107,16 @@ class Synthesizer {
             return 440 * Math.pow(2, (note - 69) / 12);
         }
 
-        let createdOsc;
+        let createdOsc = createSOsc(this._voices, this._detune,
+            this._oscType, this._maxVolume, noteFreq(note),
+            this._filterType, this._filterFrequency, this._filterBandwidth);
+
         if (this.noteOnList[note]) {
             //pushes a new soundOscillator (can have a soundOscillator releasing on the same note)
-            let si = this.noteOnList[note].push(createSOsc(this._voices, this._detune, this._oscType, this._maxVolume, noteFreq(note),
-                this._filterType, this._filterFrequency, this._filterBandwidth));
-            //sets s to newly created oscillator on note
-            createdOsc = this.noteOnList[note][si - 1];
+            this.noteOnList[note].push(createdOsc);
         } else {
             //sets noteList[note] to a standard soundOscillator array with a singular soundOscillator
-            this.noteOnList[note] = [createSOsc(this._voices, this._detune,
-                this._oscType, this._maxVolume, noteFreq(note),
-                this._filterType, this._filterFrequency, this._filterBandwidth)];
-            //sets s to index 0 (the created SoundOscillator) on created array in note
-            createdOsc = this.noteOnList[note][0];
+            this.noteOnList[note] = [createdOsc];
         }
         //Log voice creation
         //console.log("Voice created on note: " + note);
@@ -141,9 +137,11 @@ class Synthesizer {
         //connect 'master' soundOscillator node to synthesizer's destination
         newOSC.filterNode.connect(this._destination);
 
+        this.cancelAndHold(newOSCParam);
+
         //schedule attack/decay
-        newOSCParam.exponentialRampToValueAtTime(.993, audioContext.currentTime + (this.geA / 1000));
-        newOSCParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((this.geA+this.geD) / 1000));
+        this.attack(newOSCParam, this.geA);
+        this.decay(newOSCParam, this.geD);
 
         //schedule attack/decay progress timers
         attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
@@ -151,53 +149,32 @@ class Synthesizer {
         decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geD/1000));
     }
 
+    attack(oscParam, attack) {
+        this.cancelAndHold(oscParam);
+        //schedule attack ramp
+        oscParam.exponentialRampToValueAtTime(.993, audioContext.currentTime + (attack / 1000));
+        //oscParam.cancelScheduledValues(audioContext.currentTime + attack/1000);
+    }
+
+    decay(oscParam, decay) {
+        //this.cancelAndHold(oscParam);
+        oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay + this.geA) / 1000));
+    }
+
     /**
      * Triggers a release envelope for least recent soundOscillator on given note
-     * <br> * Changes gain value to 0.001% over this.geR milliseconds
      * <br> * Exchanges soundOscillator from noteOnList to noteOffList
-     * <br> * Sets a timeout to delete the enveloped soundOscillator from noteOffList after release period
+     * <br> * Triggers note release for this.geR milliseconds
      * <br> * NOTE: Thank you to Jake (Ozzy64k) for never leaving my brain until I got this right
      * @param {number} note Midi note value
      */
     noteOff(note) {
-        if (note in this.noteOnList && this.noteOnList[note].length > 0) {
-            let oscIndex = this.noteOnList[note].length - 1;
-            let oscParam = this.noteOnList[note][oscIndex].gainNode.gain;
-
-            //cancel and hold old value - have to use because firefox doesn't support cancelAndHoldAtTime
-            let oldValue = oscParam.value;
-            oscParam.cancelScheduledValues(0);
-            //set oscParam value from changing to on hold
-            oscParam.exponentialRampToValueAtTime(oldValue, audioContext.currentTime + 0.001); //causes a small 'pop' due to immediate change
-
-            //ramp oscParam value to near 0 after this.geR milliseconds
-            oscParam.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (this.geR / 1000));
-            //oscParam.setValueAtTime(0.0001, audioContext.currentTime + (this.geR / 1000));
-
+        if (this.checkNoteOn(note)) {
             //exchange oscillator from noteOnList to noteOffList
             if(note in this.noteOffList)this.noteOffList[note].push(this.noteOnList[note].pop());
             else this.noteOffList[note] = [this.noteOnList[note].pop()];
 
-            //console.log(this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.value);
-
-            //schedule release progress timer
-            this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.setValueAtTime(1, 0);
-            this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + (this.geR / 1000));
-
-            //create timeOut with delay of this.geR and push id to timeOutList
-            //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
-            this.timeOutList.push(setTimeout( (offList, note, timeOutList) => {
-                if(offList[note]){
-                    offList[note][0].oscillators.forEach((osc) => {
-                        osc.stop(0);
-                    });
-                    offList[note].splice(0, 1);
-                    //memory management below not required
-                    //if(offList[note].length === 0) offList.splice(note, 1);
-                    //if(noteList[note] && noteList[note].length === 0) noteList.splice(note, 1);
-                    timeOutList.splice(0, 1);
-                }
-            }, this.geR, this.noteOffList, note, this.timeOutList));
+            this.release(note, this.geR);
 
             //Log voice releasing
             /**
@@ -209,12 +186,54 @@ class Synthesizer {
         }
     }
 
+    release(note, releaseTime) {
+        let oscIndex = this.noteOffList[note].length - 1;
+        let oscParam = this.noteOffList[note][oscIndex].gainNode.gain;
+        let oscReleaseTimer = this.noteOffList[note][oscIndex].envelopeProgress.release;
+
+        this.cancelAndHold(oscParam);
+
+        //ramp oscParam value to near 0 after this.geR milliseconds
+        oscParam.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (releaseTime / 1000));
+
+        //console.log(this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.value);
+
+        //schedule release progress timer
+        this.cancelAndHold(oscReleaseTimer);
+        oscReleaseTimer.linearRampToValueAtTime(0, audioContext.currentTime + (releaseTime / 1000));
+
+        //create timeOut with delay of releaseTime and push id to timeOutList
+        //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
+        this.timeOutList.push(setTimeout((offList, note, timeOutList) => {
+            if (offList[note]) {
+                //stop all voices in soundOscillator
+                offList[note][0].oscillators.forEach((osc) => {
+                    osc.stop(0);
+                });
+
+                //delete stopped soundOscillator
+                offList[note].splice(0, 1);
+                timeOutList.splice(0, 1);
+            }
+        }, releaseTime, this.noteOffList, note, this.timeOutList));
+    }
+
+    cancelAndHold(oscParam) {
+        /**
+         * Old value for cancel and hold
+         */
+        let oldValue = oscParam.value;
+        //cancel and hold stage
+        oscParam.cancelScheduledValues(0);
+        oscParam.exponentialRampToValueAtTime(oldValue, 0);
+    }
+
     /**
      * Deletes all oscillators in lists + clears all note release timeouts
      */
     panic() {
         for (let i = 0, l = this.noteOnList.length; i < l; i++){
-            if(i in this.noteOnList && this.noteOnList[i].length > 0){
+            if(this.checkNoteOn(i)){
                 this.noteOnList[i].forEach((soundOscillator) => {
                     soundOscillator.oscillators.forEach((osc) => {osc.stop(0)});
                 });
@@ -223,7 +242,7 @@ class Synthesizer {
             }
         }
         for (let i = 0, l = this.noteOffList.length; i < l; i++){
-            if(i in this.noteOffList && this.noteOffList[i].length > 0){
+            if(this.checkNoteOff(i)){
                 this.noteOffList[i].forEach((soundOscillator) => {
                     soundOscillator.oscillators.forEach((osc) => {osc.stop(0)});
                 });
@@ -250,54 +269,16 @@ class Synthesizer {
 
     set geR(newRelease) {
         this._geR = newRelease;
-        this.timeOutList.splice(0);
-        let modNotes = [];
-        for (let note in this.noteOffList){
-            if (this.noteOffList[note] && this.noteOffList[note].length > 0){
-                //log notes modified by new release
-                //console.log(note);
-                modNotes.push(this.noteOffList[note]);
-            }
+        for (let id in this.timeOutList){
+            window.clearTimeout(this.timeOutList[id]);
         }
-        modNotes.forEach((noteGroup) => {
-            noteGroup.forEach((soundOscillator) => {
-                //STINKY REPEATED CODE (almost).
-                //New release time is scaled by note release progress
-                //Note release progress is a value linearly changing from 1 to 0
-                let p = soundOscillator.envelopeProgress.release.value;
-                //log progress value
-                //console.log(p);
-
-                //cancel and hold old value - have to use because firefox doesn't support cancelAndHoldAtTime
-                let oldValue = soundOscillator.gainNode.gain.value;
-
-                soundOscillator.gainNode.gain.cancelScheduledValues(0);
-                //set oscParam value from changing to on hold
-                soundOscillator.gainNode.gain.exponentialRampToValueAtTime(oldValue, audioContext.currentTime + 0.001); //causes a small 'pop' due to immediate change
-
-                soundOscillator.gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
-                //soundOscillator.gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
-
-                //create timeOut with delay of this.geR and push id to timeOutList
-                //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
-                this.timeOutList.push(setTimeout( (offList, note, timeOutList) => {
-                    if(offList[note]){
-                        offList[note][0].oscillators.forEach((osc) => {
-                            osc.stop(0);
-                        });
-                        offList[note].splice(0, 1);
-                        //memory management below not required
-                        //if(offList[note].length === 0) offList.splice(note, 1);
-                        //if(noteList[note] && noteList[note].length === 0) noteList.splice(note, 1);
-                        timeOutList.splice(0, 1);
-                    }
-                }, newRelease*p, this.noteOffList, noteGroup, this.timeOutList));
-
-                let oldProgressValue = soundOscillator.envelopeProgress.release.value;
-                soundOscillator.envelopeProgress.release.cancelScheduledValues(0);
-                soundOscillator.envelopeProgress.release.linearRampToValueAtTime(oldProgressValue, 0.001);
-                soundOscillator.envelopeProgress.release.linearRampToValueAtTime(0, audioContext.currentTime + ((newRelease*p)/1000));
-            });
+        this.timeOutList.splice(0);
+        let modNotes = this.getOffNoteIndexes();
+        modNotes.forEach((note) => {
+            for (let i in this.noteOffList[note]){
+                let progress = this.noteOffList[note][i].envelopeProgress.release.value;
+                this.release(note, newRelease * progress);
+            }
         });
     }
 
@@ -306,27 +287,31 @@ class Synthesizer {
     // ----- Statistic Functions ----- //
 
     /**
-     * Returns both active and releasing soundOscillators of given midi note
-     * <br>Return is an array:
-     * <br>[0]: {note: midiNote, oscGroup: active soundOscillators[]}
-     * <br>[1]: {note: midiNote oscGroup: releasing soundOscillators[]}
-     * @param note
+     * Returns true/false if midi note value has voices in noteOn
+     * @param {number} note
+     * @return {boolean}
      */
-    getNoteOscillators(note){
-        let r = [];
-        if(this.noteOnList[note] && this.noteOnList[note].length > 0) r[0] = {note: note, oscGroup: this.noteOnList[note]};
-        if(this.noteOffList[note] && this.noteOffList[note].length > 0) r[1] = {note: note, oscGroup: this.noteOffList[note]};
-        return r;
+    checkNoteOn(note){
+        return (this.noteOnList[note] && this.noteOnList[note].length > 0);
+    }
+
+    /**
+     * Returns true/false if midi note value has voices releasing
+     * @param {number} note
+     * @return {boolean}
+     */
+    checkNoteOff(note){
+        return (this.noteOffList[note] && this.noteOffList[note].length > 0);
     }
 
     /**
      * Returns number of voices on/releasing on a midi note
      * @param {number} note
-     * @return {{voicesOn: {number}, voicesReleasing: {number}}}
+     * @return {{voicesOn: number, voicesReleasing: number}}
      */
-    getNoteInfo(note){
-        let onVoices = (this.noteOnList[note] && this.noteOnList[note].length > 0) ? this.noteOnList[note].length: 0;
-        let offVoices = (this.noteOffList[note] && this.noteOffList[note].length > 0) ? this.noteOffList[note].length: 0;
+    getNoteStatInfo(note){
+        let onVoices = this.getOnNoteIndexes().length;
+        let offVoices = this.getOffNoteIndexes().length;
         return {voicesOn: onVoices, voicesReleasing: offVoices};
     }
 
@@ -336,7 +321,7 @@ class Synthesizer {
      * @param {number} note
      */
     logNoteInfo(note){
-        let info = this.getNoteInfo(note);
+        let info = this.getNoteStatInfo(note);
         let r = ("--------");
         r += ('\n# of voices on: ' + info.voicesOn);
         r += ('\n# of voices releasing: ' + info.voicesReleasing);
@@ -350,8 +335,8 @@ class Synthesizer {
     logNotesSummary(){
         let r = ("--- Active Notes ---\n");
         for (let i = 0, l = 127; i <= l; i++){
-            if( (this.noteOnList[i] && this.noteOnList[i].length > 0) ||
-                (this.noteOffList[i] && this.noteOffList[i].length > 0)) {
+            if( (this.checkNoteOn(i)) ||
+                (this.checkNoteOff(i))) {
                 r += ("\nNote: " + i);
                 r += "\n" + this.logNoteInfo(i);
             }
@@ -361,28 +346,14 @@ class Synthesizer {
     }
 
     /**
-     * Returns data for notes currently in noteOn state
-     * @return {{index: {number}, voices: {number}}[]}
-     */
-    getOnNoteInfo(){
-        let r = [];
-        for (let i in this.noteOnList){
-            if(this.noteOnList[i] && this.noteOnList[i].length > 0){
-                r.push(this.getNoteInfo(i));
-            }
-        }
-        return r;
-    }
-
-    /**
-     * Returns data for notes currently in release state
+     * Returns indexes for notes currently in noteOn state
      * @return {*[{index: {number}, voices: {number}]}
      */
-    getOffNoteInfo(){
+    getOnNoteIndexes(){
         let r = [];
-        for (let i in this.noteOffList){
-            if(this.noteOffList[i] && this.noteOffList[i].length > 0){
-                r.push(this.getNoteInfo(i));
+        for (let i in this.noteOnList){
+            if(this.checkNoteOn(i)){
+                r.push(i);
             }
         }
         return r;
@@ -395,12 +366,27 @@ class Synthesizer {
     getOffNoteIndexes(){
         let r = [];
         for (let i in this.noteOffList){
-            if(this.noteOffList[i] && this.noteOffList[i].length > 0){
+            if(this.checkNoteOff(i)){
                 r.push(i);
             }
         }
         return r;
     }
+
+    /**
+     * Returns both active and releasing soundOscillators of given midi note
+     * <br>Return is an array:
+     * <br>[0]: {note: midiNote, oscGroup: active soundOscillators[]}
+     * <br>[1]: {note: midiNote oscGroup: releasing soundOscillators[]}
+     * @param note
+     */
+    getAllOscillatorsOnNote(note){
+        let r = [];
+        if(this.checkNoteOn(note)) r[0] = {note: note, oscGroup: this.noteOnList[note]};
+        if(this.checkNoteOff(note)) r[1] = {note: note, oscGroup: this.noteOffList[note]};
+        return r;
+    }
+
 
     // ------------------------------------ //
 
