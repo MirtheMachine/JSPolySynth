@@ -172,7 +172,7 @@ class Synthesizer {
 
             //ramp oscParam value to near 0 after this.geR milliseconds
             oscParam.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (this.geR / 1000));
-            oscParam.setValueAtTime(0.0001, audioContext.currentTime + (this.geR / 1000));
+            //oscParam.setValueAtTime(0.0001, audioContext.currentTime + (this.geR / 1000));
 
             //exchange oscillator from noteOnList to noteOffList
             if(note in this.noteOffList)this.noteOffList[note].push(this.noteOnList[note].pop());
@@ -425,7 +425,7 @@ class Synthesizer {
                 soundOscillator.gainNode.gain.exponentialRampToValueAtTime(oldValue, audioContext.currentTime + 0.001); //causes a small 'pop' due to immediate change
 
                 soundOscillator.gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
-                soundOscillator.gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
+                //soundOscillator.gainNode.gain.linearRampToValueAtTime(0.0001, audioContext.currentTime + ((newRelease*p)/1000));
 
                 //create timeOut with delay of this.geR and push id to timeOutList
                 //timeOut function stops and removes soundOscillator from offList[note] + deletes its ID from the timeOutList
