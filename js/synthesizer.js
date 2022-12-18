@@ -317,8 +317,10 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
+                //reset progress ramp
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
+                //re-decay according to progress
                 this.decay(noteGroup.gainNode.gain, this.geA, value * progress.value);
             });
         });
@@ -341,8 +343,12 @@ class Synthesizer {
         let modNotes = this.getOnNoteIndexes();
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
-                let progress = noteGroup.envelopeProgress.decay.value;
-                this.decay(noteGroup.gainNode.gain, this.geA, this.geD * progress);
+                let progress = noteGroup.envelopeProgress.decay;
+                //reset progress ramp
+                this.cancelAndHold(progress);
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
+                //re-decay according to progress
+                this.decay(noteGroup.gainNode.gain, this.geA, this.geD * progress.value);
             });
         });
     }
