@@ -157,7 +157,7 @@ class Synthesizer {
     }
 
     decay(oscParam, attack, decay) {
-        //this.cancelAndHold(oscParam);
+        this.cancelAndHold(oscParam, false);
         oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay + attack) / 1000));
     }
 
@@ -218,14 +218,14 @@ class Synthesizer {
         }, releaseTime, this.noteOffList, note, this.timeOutList));
     }
 
-    cancelAndHold(oscParam) {
+    cancelAndHold(oscParam, now=true) {
         /**
          * Old value for cancel and hold
          */
         let oldValue = oscParam.value;
         //cancel and hold stage
-        oscParam.cancelScheduledValues(0);
-        oscParam.exponentialRampToValueAtTime(oldValue, 0);
+        if(now === true){oscParam.cancelScheduledValues(0); }
+        oscParam.exponentialRampToValueAtTime(oldValue, now? 0: audioContext.currentTime);
     }
 
     /**
@@ -292,8 +292,57 @@ class Synthesizer {
         let modNotes = this.getOnNoteIndexes();
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
-                let progress = noteGroup.envelopeProgress.attack.value;
-                this.attack(noteGroup.gainNode.gain, value * progress);
+                let progress = noteGroup.envelopeProgress.attack;
+                this.cancelAndHold(progress);
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
+                this.attack(noteGroup.gainNode.gain, value * progress.value);
+            });
+        });
+
+        //console test code
+        /*
+        function thing(){s.geA = 500}
+        s.geA = 5000
+        setTimeout(thing, 1000)
+        */
+    }
+
+    get geD() {
+        return this._geD;
+    }
+
+    set geD(value) {
+        this._geD = value;
+        let modNotes = this.getOnNoteIndexes();
+        modNotes.forEach((note) => {
+            this.noteOnList[note].forEach((noteGroup) => {
+                let progress = noteGroup.envelopeProgress.decay;
+                this.cancelAndHold(progress);
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
+                this.decay(noteGroup.gainNode.gain, this.geA, value * progress.value);
+            });
+        });
+
+        //console test code
+        /*
+        s.geS = 0.01
+        function thing(){s.geD = 200}
+        s.geD = 5000
+        setTimeout(thing, 1000)
+        */
+    }
+
+    get geS() {
+        return this._geS;
+    }
+
+    set geS(value) {
+        this._geS = value;
+        let modNotes = this.getOnNoteIndexes();
+        modNotes.forEach((note) => {
+            this.noteOnList[note].forEach((noteGroup) => {
+                let progress = noteGroup.envelopeProgress.decay.value;
+                this.decay(noteGroup.gainNode.gain, this.geA, this.geD * progress);
             });
         });
     }
@@ -560,24 +609,6 @@ class Synthesizer {
 
     set filterType(value) {
         this._filterType = value;
-    }
-
-
-
-    get geS() {
-        return this._geS;
-    }
-
-    set geS(value) {
-        this._geS = value;
-    }
-
-    get geD() {
-        return this._geD;
-    }
-
-    set geD(value) {
-        this._geD = value;
     }
 
     get geDepth() {
