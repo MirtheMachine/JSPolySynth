@@ -142,10 +142,11 @@ class Synthesizer {
         //schedule attack/decay
         this.attack(newOSCParam, this.geA);
 
+        this.cancelAndHold(attackProgress);
+        this.cancelAndHold(decayProgress);
         //schedule attack/decay progress timers
         attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
-        decayProgress.linearRampToValueAtTime(1, audioContext.currentTime + (this.geA/1000));
-        decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geD/1000));
+        decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA+this.geD/1000));
     }
 
     attack(oscParam, attack) {
@@ -226,7 +227,7 @@ class Synthesizer {
         let oldValue = oscParam.value;
         //cancel and hold stage
         if(now === true){oscParam.cancelScheduledValues(0); }
-        oscParam.exponentialRampToValueAtTime(oldValue, now? 0: audioContext.currentTime);
+        oscParam.linearRampToValueAtTime(oldValue, now? 0: audioContext.currentTime);
     }
 
     /**
@@ -294,10 +295,10 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.attack;
-                //console.log(progress.value);
+                console.log(progress.value);
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
-                this.attack(noteGroup.gainNode.gain, value * progress.value);
+                if(progress.value > 0)this.attack(noteGroup.gainNode.gain, value * progress.value);
             });
         });
 
@@ -324,7 +325,7 @@ class Synthesizer {
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
                 //re-decay according to progress
-                this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, value * progress.value);
+                if(progress.value > 0)this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, value * progress.value);
             });
         });
 
