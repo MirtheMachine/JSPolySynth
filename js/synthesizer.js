@@ -298,7 +298,7 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.attack;
-                console.log(progress.value);
+                //console.log(progress.value);
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
                 if(progress.value > 0)this.attack(noteGroup.gainNode.gain, value * progress.value);
@@ -325,7 +325,7 @@ class Synthesizer {
                 let progress = noteGroup.envelopeProgress.decay;
                 let aProgress = noteGroup.envelopeProgress.attack;
 
-                console.log(aProgress.value, progress.value);
+                //console.log(aProgress.value, progress.value);
                 let aValue = this.geA * aProgress.value;
                 //reset progress ramp
                 this.cancelAndHold(progress);
@@ -356,7 +356,7 @@ class Synthesizer {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
                 let aProgress = noteGroup.envelopeProgress.attack;
-                console.log(progress.value);
+                //console.log(progress.value);
                 //reset progress ramp
                 //re-decay according to progress
                 this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, this.geD * progress.value);
