@@ -127,15 +127,9 @@ class Synthesizer {
         newOSCParam.cancelScheduledValues(0);
         newOSCParam.exponentialRampToValueAtTime(0.001, 0);
 
-        //assign new soundOscillator a constant reference
-        const newOSC = createdOsc;
-
         //get values of CSC envelope progress nodes
-        const attackProgress = newOSC.envelopeProgress.attack;
-        const decayProgress = newOSC.envelopeProgress.decay;
-
-        //connect 'master' soundOscillator node to synthesizer's destination
-        newOSC.filterNode.connect(this._destination);
+        let attackProgress = createdOsc.envelopeProgress.attack;
+        let decayProgress = createdOsc.envelopeProgress.decay;
 
         this.cancelAndHold(newOSCParam);
 
@@ -146,7 +140,16 @@ class Synthesizer {
         this.cancelAndHold(decayProgress);
         //schedule attack/decay progress timers
         attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
-        decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA+this.geD/1000));
+        decayProgress.linearRampToValueAtTime(1, audioContext.currentTime + (this.geA/1000));
+        decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + ((this.geA+this.geD)/1000));
+
+        //assign new soundOscillator a constant reference
+        const newOSC = createdOsc;
+
+        //connect 'master' soundOscillator node to synthesizer's destination
+        newOSC.filterNode.connect(this._destination);
+
+
     }
 
     attack(oscParam, attack) {
@@ -321,9 +324,13 @@ class Synthesizer {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
                 let aProgress = noteGroup.envelopeProgress.attack;
+
+                console.log(aProgress.value, progress.value);
+                let aValue = this.geA * aProgress.value;
                 //reset progress ramp
                 this.cancelAndHold(progress);
-                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
+                if(aValue>0)progress.linearRampToValueAtTime(1, audioContext.currentTime + (aValue/1000));
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + (((value * progress.value) + aValue) / 1000));
                 //re-decay according to progress
                 if(progress.value > 0)this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, value * progress.value);
             });
@@ -349,6 +356,7 @@ class Synthesizer {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
                 let aProgress = noteGroup.envelopeProgress.attack;
+                console.log(progress.value);
                 //reset progress ramp
                 //re-decay according to progress
                 this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, this.geD * progress.value);
