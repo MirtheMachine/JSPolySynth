@@ -257,7 +257,7 @@ function startSynth() {
   noteInputSlider.setAttribute("max", "127");
 
   noteInputSlider.setAttribute("step", "1");
-  helpTextDiv.appendChild(document.createTextNode("To change synthesizer parameters, reload the page or use f12 to access the console!"));
+  helpTextDiv.appendChild(document.createTextNode("To change synthesizer parameters manually change with sliders above or press f12 to access the console:"));
   helpTextDiv.appendChild(document.createElement("br"));
   helpTextDiv.appendChild(document.createTextNode("List of commands:"))
   const helpTextList = document.createElement("ul");
