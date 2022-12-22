@@ -206,7 +206,7 @@ function startSynth() {
     {type: "sustain", param: "geS", range: [0.01, 1], step: 0.01},
     {type: "release", param: "geR", range: [0, 5000], step: 5},
     {type: "voices", param: "voices", range: [1, 6], step: 1},
-    {type: "detune", param: "detune", range: [-1200, 1200], step: 10}
+    {type: "detune", param: "detune", range: [0, 1200], step: 5}
   ];
   //generate param control box
   const paramControlBox = document.createElement("div");
