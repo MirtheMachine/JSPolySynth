@@ -76,6 +76,7 @@ envelopeBox.answers.push({text: "Long Attack", answer: "1000,100,0.5,500", nextB
 
 boxes.push(sineBox1, sawBox1, squareBox1, envelopeBox);
 
+
 function spawnBox(boxID) {
   if (answers.length < 2) {
     let box = boxID;
@@ -85,6 +86,7 @@ function spawnBox(boxID) {
 
     //add select element to divContainer
     divContainer.appendChild(document.createTextNode(box.question));
+
 
     //create option elements for each answer object in box
     box.answers.forEach(function (v) {
@@ -154,7 +156,38 @@ function spawnStartAudioButton() {
   document.getElementsByTagName('body')[0].appendChild(button);
 }
 
+//Synth action functions
+function changeNoteNumber() {
+  //s.noteOff(oldNote);
+  let i = document.getElementById("noteRangeSelector").value;
+  note = i;
+  oldNote = i;
+  console.log("Midi note: " + i + " set.");
+  document.getElementById(
+      "noteText").textContent = "Midi note value for synth to play: " + i;
+}
+
+function changeParamValue(id, value) {
+  let numParamSetters = [
+    (v) => s.geA = parseInt(v),
+    (v) => s.geD = parseInt(v),
+    (v) => s.geS = parseFloat(v),
+    (v) => s.geR = parseInt(v),
+    (v) => s.voices = parseInt(v),
+    (v) => s.detune = parseInt(v)
+  ];
+  document.getElementById(id + "Label").firstChild.nodeValue = value;
+  id = parseInt(id.substring(1));
+  numParamSetters[id](value);
+  //console.log(id + ":" + value);
+}
+
+
+
+
 function startSynth() {
+  document.getElementById('startAudioButton').remove();
+  //set synth params
   s.oscType = answers[0];
   let voiceAnswers = answers[1].split(",");
   s.voices = parseInt(voiceAnswers[0]);
@@ -165,8 +198,43 @@ function startSynth() {
   s.geS = parseFloat(envelopeAnswers[2]);
   s.geR = parseInt(envelopeAnswers[3]);
 
+  //add to accessible array with labels, range, and step
+  const params = [s.geA, s.geD, s.geS, s.geR, s.voices, s.detune];
+  const numParams = [
+    {type: "attack", param: "geA", range: [0, 5000], step: 5},
+    {type: "decay", param: "geD", range: [0, 5000], step: 5},
+    {type: "sustain", param: "geS", range: [0.01, 1], step: 0.01},
+    {type: "release", param: "geR", range: [0, 5000], step: 5},
+    {type: "voices", param: "voices", range: [1, 6], step: 1},
+    {type: "detune", param: "detune", range: [-1200, 1200], step: 10}
+  ];
+  //generate param control box
+  const paramControlBox = document.createElement("div");
+  for (let p = 0, l = numParams.length; p < l; p++){
+    let container = document.createElement("div");
+    let numSelect = document.createElement("input");
+    let numSelectLabel = document.createElement("label");
 
-  document.getElementById('startAudioButton').remove();
+    numSelect.setAttribute("type", "range");
+    numSelect.setAttribute("name", "p"+ numParams[p].type);
+    numSelect.setAttribute("min", numParams[p].range[0].toString());
+    numSelect.setAttribute("max", numParams[p].range[1].toString());
+    numSelect.setAttribute("step", numParams[p].step);
+    numSelect.setAttribute("value", params[p]);
+    numSelect.id = "p" + p;
+    numSelect.addEventListener("change", function(e){
+      changeParamValue(this.id, document.getElementById(this.id).value)
+    });
+
+    numSelectLabel.setAttribute("for", "p" + numParams[p].type);
+    numSelectLabel.id = "p" + p + "Label";
+    numSelectLabel.appendChild(document.createTextNode(params[p]));
+
+    let paramText = document.createElement("p");
+    paramText.appendChild(document.createTextNode(numParams[p].type));
+    container.append(paramText, numSelect, numSelectLabel);
+    paramControlBox.append(container);
+  }
 
   const inputOn = document.createElement("input");
   const panicButton = document.createElement("input");
@@ -176,41 +244,42 @@ function startSynth() {
   inputOn.setAttribute("value", "Click/hold to play a note!");
   inputOn.setAttribute("type", "button");
   inputOn.setAttribute("id", "soundBtn");
-  panicButton.setAttribute("value", "Stop all sound!");
 
+  panicButton.setAttribute("value", "Stop all sound!");
   panicButton.setAttribute("type", "button");
   panicButton.setAttribute("id", "panicBtn");
   panicButton.setAttribute("onmousedown", "s.panic()");
-  noteInputSlider.setAttribute("value", "64");
 
+  noteInputSlider.setAttribute("value", "64");
   noteInputSlider.setAttribute("type", "range");
   noteInputSlider.setAttribute("id", "noteRangeSelector");
   noteInputSlider.setAttribute("min", "20");
   noteInputSlider.setAttribute("max", "127");
-  noteInputSlider.setAttribute("step", "1");
 
+  noteInputSlider.setAttribute("step", "1");
   helpTextDiv.appendChild(document.createTextNode("To change synthesizer parameters, reload the page or use f12 to access the console!"));
   helpTextDiv.appendChild(document.createElement("br"));
   helpTextDiv.appendChild(document.createTextNode("List of commands:"))
   const helpTextList = document.createElement("ul");
   let commands = [
-      "See summary of all note states in console: s.logNotesSummary()",
-      "Oscillator Type: s.oscType = \"(sine,sawtooth,triangle,square)\"",
-      "Voices per note: s.voices = {integer}",
-      "Voice detune start value: s.detune = {cents}",
-      "Gain Envelope Attack: s.geA = {time in ms}",
-      "Gain Envelope Decay: s.geD = {time in ms}",
-      "Gain Envelope Sustain: s.geS = {0.001 to 1.0}",
-      "Gain Envelope Release: s.geR = {time in ms}",
-      "Master filter type: s.filterType = \"{lowpass,highpass,lowshelf,etc.}\"",
-      "Master filter cutoff frequency: s.filterFrequency = {value in hz}",
-      "Master filter Q value: s.filterBandwidth = {resonance value in dB / Q value}"
+    "See summary of all note states in console: s.logNotesSummary()",
+    "Oscillator Type: s.oscType = \"(sine,sawtooth,triangle,square)\"",
+    "Voices per note: s.voices = {integer}",
+    "Voice detune start value: s.detune = {cents}",
+    "Gain Envelope Attack: s.geA = {time in ms}",
+    "Gain Envelope Decay: s.geD = {time in ms}",
+    "Gain Envelope Sustain: s.geS = {0.001 to 1.0}",
+    "Gain Envelope Release: s.geR = {time in ms}",
+    "Master filter type: s.filterType = \"{lowpass,highpass,lowshelf,etc.}\"",
+    "Master filter cutoff frequency: s.filterFrequency = {value in hz}",
+    "Master filter Q value: s.filterBandwidth = {resonance value in dB / Q value}"
   ];
   for (let c in commands){
     let li = document.createElement("li");
     li.appendChild(document.createTextNode(commands[c]));
     helpTextList.appendChild(li);
   }
+
   helpTextDiv.appendChild(helpTextList);
 
   inputOn.addEventListener("mousedown", playNote);
@@ -221,7 +290,7 @@ function startSynth() {
   const controlBox = document.createElement("div");
   controlBox.append(inputOn, panicButton, noteInputSlider);
 
-  document.body.append(controlBox, document.createElement("br"), helpTextDiv);
+  document.body.append(controlBox, document.createElement("br"), paramControlBox, helpTextDiv);
 }
 
 function playNote() {
@@ -230,14 +299,4 @@ function playNote() {
 
 function stopNote() {
   s.noteOff(note);
-}
-
-function changeNoteNumber() {
-  //s.noteOff(oldNote);
-  let i = document.getElementById("noteRangeSelector").value;
-  note = i;
-  oldNote = i;
-  console.log("Midi note: " + i + " set.");
-  document.getElementById(
-      "noteText").textContent = "Midi note value for synth to play: " + i;
 }

@@ -178,7 +178,7 @@ class Synthesizer {
 
             //Log voice releasing
             /**
-            this.timeOutList.push(setTimeout((note) => {
+             this.timeOutList.push(setTimeout((note) => {
                     console.log("Voice stopped on note: " + note);
                     this.logNoteInfo(note);
                 }, this.geR, note));
@@ -196,6 +196,7 @@ class Synthesizer {
         //ramp oscParam value to near 0 after this.geR milliseconds
         oscParam.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + (releaseTime / 1000));
 
+        //log release progress
         //console.log(this.noteOffList[note][this.noteOffList[note].length-1].envelopeProgress.release.value);
 
         //schedule release progress timer
@@ -293,6 +294,7 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.attack;
+                //console.log(progress.value);
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
                 this.attack(noteGroup.gainNode.gain, value * progress.value);
@@ -317,11 +319,12 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
+                let aProgress = noteGroup.envelopeProgress.attack;
                 //reset progress ramp
                 this.cancelAndHold(progress);
                 progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
                 //re-decay according to progress
-                this.decay(noteGroup.gainNode.gain, this.geA, value * progress.value);
+                this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, value * progress.value);
             });
         });
 
@@ -344,11 +347,10 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.decay;
+                let aProgress = noteGroup.envelopeProgress.attack;
                 //reset progress ramp
-                this.cancelAndHold(progress);
-                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
                 //re-decay according to progress
-                this.decay(noteGroup.gainNode.gain, this.geA, this.geD * progress.value);
+                this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, this.geD * progress.value);
             });
         });
     }
