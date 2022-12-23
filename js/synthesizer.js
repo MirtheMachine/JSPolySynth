@@ -294,7 +294,7 @@ class Synthesizer {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.attack;
                 let dProgress = noteGroup.envelopeProgress.decay;
-                console.log(progress.value);
+                //console.log(progress.value);
 
                 //reset attack progress ramp
                 this.cancelAndHold(progress);
@@ -335,7 +335,7 @@ class Synthesizer {
                 let modValue = value * progress.value;
                 //reset progress ramp
                 this.cancelAndHold(progress);
-                console.log(progress.value);
+                //console.log(progress.value);
                 //don't add attack time if attack stage finished
                 if(aProgress.value > 0)progress.setValueAtTime(1, audioContext.currentTime + (aValue/1000));
                 //recalculate decay progress ramp
