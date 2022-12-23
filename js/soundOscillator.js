@@ -25,10 +25,10 @@ class SoundOscillator {
         this.samples = [];
 
         /** @type {GainNode} */
-        this.gainNode = audioContext.createGain();
+        this.gainNode = new GainNode(audioContext);
 
         /** @type {BiquadFilterNode} */
-        this.filterNode = audioContext.createBiquadFilter();
+        this.filterNode = new BiquadFilterNode(audioContext);
 
         /** @type {number} */
         this.maxOscVol = 1; //want to be able to decrease oscillator volume based on if there's more than one
@@ -38,6 +38,8 @@ class SoundOscillator {
         const rP = new ConstantSourceNode(audioContext);
 
         this.envelopeProgress = {attack: aP.offset, decay: dP.offset, release: rP.offset};
+
+        this.masterFreq = new ConstantSourceNode(audioContext);
     }
 
     /**
@@ -107,7 +109,12 @@ function createSOsc(voices = 1, detune = 0,
     const o = new SoundOscillator(voices, detune);
 
     o.oscillators.forEach((osc) => {osc.type = oType});
-    o.oscillators.forEach((osc) => {osc.frequency.value = frequency});
+    o.oscillators.forEach((osc) => {osc.frequency.value = frequency})
+    for (let osc in o.oscillators){
+        o.masterFreq.connect(o.oscillators[osc].frequency);
+    }
+    o.masterFreq.start(0);
+
     o.filterNode.type = fType;
     o.filterNode.frequency.value = fFrequency;
     o.filterNode.Q.value = fQValue;

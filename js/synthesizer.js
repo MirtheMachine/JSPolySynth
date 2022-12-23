@@ -140,16 +140,11 @@ class Synthesizer {
         this.cancelAndHold(decayProgress);
         //schedule attack/decay progress timers
         attackProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geA/1000));
-        decayProgress.linearRampToValueAtTime(1, audioContext.currentTime + (this.geA/1000));
+        decayProgress.setValueAtTime(1, audioContext.currentTime + (this.geA/1000));
         decayProgress.linearRampToValueAtTime(0, audioContext.currentTime + ((this.geA+this.geD)/1000));
 
-        //assign new soundOscillator a constant reference
-        const newOSC = createdOsc;
-
         //connect 'master' soundOscillator node to synthesizer's destination
-        newOSC.filterNode.connect(this._destination);
-
-
+        createdOsc.filterNode.connect(this._destination);
     }
 
     attack(oscParam, attack) {
@@ -162,7 +157,7 @@ class Synthesizer {
 
     decay(oscParam, attack, decay) {
         this.cancelAndHold(oscParam, false);
-        oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay + attack) / 1000));
+        oscParam.linearRampToValueAtTime(this.geS, audioContext.currentTime + ((decay+attack) / 1000));
     }
 
     /**
@@ -298,10 +293,20 @@ class Synthesizer {
         modNotes.forEach((note) => {
             this.noteOnList[note].forEach((noteGroup) => {
                 let progress = noteGroup.envelopeProgress.attack;
-                //console.log(progress.value);
+                let dProgress = noteGroup.envelopeProgress.decay;
+                console.log(progress.value);
+
+                //reset attack progress ramp
                 this.cancelAndHold(progress);
-                progress.linearRampToValueAtTime(0, audioContext.currentTime + ((value * progress.value) / 1000));
-                if(progress.value > 0)this.attack(noteGroup.gainNode.gain, value * progress.value);
+                this.cancelAndHold(dProgress);
+                let modValue = value * progress.value;
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + (modValue / 1000));
+                dProgress.setValueAtTime(1, audioContext.currentTime + (modValue / 1000));
+                dProgress.linearRampToValueAtTime(0, audioContext.currentTime + (this.geD /1000));
+                //re-calculate attack timing if note still in attack stage
+                this.cancelAndHold(noteGroup.gainNode.gain);
+                if(modValue>0)this.attack(noteGroup.gainNode.gain, modValue);
+                else this.decay(noteGroup.gainNode.gain, modValue, this.geD * dProgress.value);
             });
         });
 
@@ -327,12 +332,16 @@ class Synthesizer {
 
                 //console.log(aProgress.value, progress.value);
                 let aValue = this.geA * aProgress.value;
+                let modValue = value * progress.value;
                 //reset progress ramp
                 this.cancelAndHold(progress);
-                if(aValue>0)progress.linearRampToValueAtTime(1, audioContext.currentTime + (aValue/1000));
-                progress.linearRampToValueAtTime(0, audioContext.currentTime + (((value * progress.value) + aValue) / 1000));
-                //re-decay according to progress
-                if(progress.value > 0)this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, value * progress.value);
+                console.log(progress.value);
+                //don't add attack time if attack stage finished
+                if(aProgress.value > 0)progress.setValueAtTime(1, audioContext.currentTime + (aValue/1000));
+                //recalculate decay progress ramp
+                progress.linearRampToValueAtTime(0, audioContext.currentTime + (modValue / 1000));
+                //re-calculate decay timing if decay stage unfinished
+                this.decay(noteGroup.gainNode.gain, aValue, modValue);
             });
         });
 
@@ -359,7 +368,9 @@ class Synthesizer {
                 //console.log(progress.value);
                 //reset progress ramp
                 //re-decay according to progress
-                this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, this.geD * progress.value);
+                this.cancelAndHold(noteGroup.gainNode.gain);
+                if(aProgress.value === 0)this.decay(noteGroup.gainNode.gain, this.geA * aProgress.value, this.geD * progress.value);
+                else this.attack(noteGroup.gainNode.gain, this.geA * aProgress.value);
             });
         });
     }
